@@ -18,8 +18,13 @@ library(shinyBS)
 library(data.table)
 library(tidyr)
 library(DT)
+library(rhandsontable)
 
+#num <-  c(0,1)
 quesAns <- fread('zendesk_challenge.tsv', encoding='UTF-8', quote = "")
+#quesAns_rand <- rhandsontable(quesAns) %>% hot_col(col = "Label", 
+#                  type = "dropdown", source = num, allowInvalid = TRUE)
+
 
 # Define UI for application that draws a histogram
 ui <- dashboardPage(
@@ -72,17 +77,7 @@ ui <- dashboardPage(
         font-size: 24px;
       }
     '))),
-        
-        # tags$head(tags$style(HTML('
-        #                       .skin-blue .main-header .logo {
-        #                       background-color: #3c8dbc;
-        #                       }
-        #                       .skin-blue .main-header .logo:hover {
-        #                       background-color: #3c8dbc;
-        #                       }
-        #                       ')
-        #                      )
-        # ),
+
         
         tabItems(
           # Question tab content
