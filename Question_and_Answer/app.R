@@ -1,12 +1,11 @@
 #
-# This is a Shiny web application. You can run the application by clicking
-# the 'Run App' button above.
+# This is a Shiny web Question & Answer application
 #
-# Find out more about building applications with Shiny here:
-#
-#    http://shiny.rstudio.com/
+# Author: cgalea
+# Date: 05/07/2019
 #
 
+# Load R packages
 library(shiny)
 library(shinydashboard)
 library(leaflet)
@@ -19,15 +18,12 @@ library(data.table)
 library(tidyr)
 library(DT)
 library(rhandsontable)
+library(tibble)
 
-#num <-  c(0,1)
+# Load dataset
 quesAns <- fread('zendesk_challenge.tsv', encoding='UTF-8', quote = "")
 
-#quesAns_rand <- rhandsontable(quesAns) %>% hot_col(col = "Label", 
-#                  type = "dropdown", source = num, allowInvalid = TRUE)
-
-
-# Define UI for application that draws a histogram
+# Define UI for application
 ui <- dashboardPage(
   skin = "purple",
   dashboardHeader(title = "Test Your Knowledge",
@@ -48,9 +44,9 @@ ui <- dashboardPage(
       # Question and Answer tab for main panel
       menuItem("Question and Answer", tabName = "QA", icon = icon("graduation-cap")),
       
-      helpText("Note: while the data view will show only the specified",
-               "number of observations, the summary will still be based",
-               "on the full dataset."),
+      # helpText("Note: while the data view will show only the specified",
+      #          "number of observations, the summary will still be based",
+      #          "on the full dataset."),
       
       # Data table tab to view data
       menuItem("Data Table", tabName = "table", icon = icon("table")),
@@ -63,14 +59,10 @@ ui <- dashboardPage(
       
       hr(),
       br(),
-      br(),
+      br()
       
-      menuItem(bsButton("End Play", label = "End Game", style = "warning", 
-                        size = "large", type = "action", icon = icon("ban"))),
-      tags$p("Click this button finish playing.")
-    
-    )
-  ),
+      )
+    ),
       
       
       dashboardBody(
@@ -79,8 +71,10 @@ ui <- dashboardPage(
         font-family: "Georgia", Times, "Times New Roman", serif;
         font-weight: bold;
         font-size: 24px;
-      }
-    '))),
+      }'
+                                  )
+                            )
+                    ),
 
         
         tabItems(
@@ -88,7 +82,7 @@ ui <- dashboardPage(
           tabItem(tabName = "QA",
                   fluidRow(
                     
-                    # Box 1. Question
+                    # Box 1. Random Question
                     box(title = "Question", status = "primary", height = 200, width = 12,
                         solidHeader = TRUE,
                         helpText("1. When you click the button to see",
@@ -97,25 +91,29 @@ ui <- dashboardPage(
                         
                         verbatimTextOutput("questionSample"),
                         helpText("2. Click on the best answer in the table below.")
-                ),
+                        ),
                     
-#                    hr(),
-#                    fluidRow(column(2, verbatimTextOutput("value"))),
-                    
-                    
-                    # Box 2. Answers
+                    # Box 2. Possible Answers
                     box(title = "Possible Answers", status = "primary", 
-                        height = 680, width = 12, solidHeader = TRUE,
-                        column(12, DT::DTOutput('answerSample')),
-                        column(3, verbatimTextOutput('pick'))
+                        height = 680, width = 9, solidHeader = TRUE,
+                        column(12, DT::dataTableOutput('answerSample'))
+                        ),
+
+                    # Box 3. Result
+                    box(title = "Result", status = "primary", 
+                        height = 680, width = 3, solidHeader = TRUE,
+                        column(12, verbatimTextOutput("info", placeholder = TRUE))
+                        )
                     )
-                )
-          ),
+                ),
+          
           
           # Data Table tab content
           tabItem(tabName = "table",
+                  
                   fluidPage(
                     titlePanel("Question and Answer Dataset"),
+                    
                     fluidRow(
                       #Create a new row for selectInputs
                       column(4,
@@ -125,9 +123,10 @@ ui <- dashboardPage(
                       #Create a new row for the table
                             dataTableOutput("dataTable"), 
                                 style = "font-size: 100%; width: 100%")
-                  )
-                )
-          ),
+                      )
+                    )
+                  ),
+          
           
           # ReadMe tab content
           tabItem(tabName = "readme",
@@ -139,60 +138,65 @@ ui <- dashboardPage(
           tabItem(tabName = "code",
                   fluidRow(includeMarkdown("code.Rmd")
                   )
+              )
           )
       )
-   )
-)
+  )
 
 
-# Define server logic required to draw a histogram
+
+
+
+# Define server logic required generate random question and corresponding 
+# table of possible answers
 server <- function(input, output) {
   
+  # Filter to find random Question
   filtered_data <- eventReactive(input$action, {
-    # Filter to find random Question 
     samp <- unique(quesAns$Question)
+    samp <- sample(samp, 1, replace = FALSE)
   samp
   })
   
+  
+  # Output random question
   output$questionSample <- renderPrint({
     filt_random_sample <- filtered_data()
-    filt_random_sample <- sample(filt_random_sample, 1, replace = FALSE)
     filt_random_sample
   })
   
-  output$answerSample <- DT::renderDataTable({
+  
+  # Output possible answers
+  output$answerSample <- DT::renderDataTable(server = FALSE, {
     filt_random_sample <- filtered_data()
-    filt_random_sample <- sample(filt_random_sample, 1, replace = TRUE)
     filt_random_sample <- filter(quesAns, quesAns$Question == filt_random_sample)
     filt_random_sample <- filt_random_sample[,5:6]
     filt_random_sample$rownames <- seq(from = 1, to = length(filt_random_sample[,1]), by = 1)
     filt_random_sample <- column_to_rownames(filt_random_sample, var = "rownames")
-    filt_random_sample}
-    , server = TRUE
+    filt_random_sample
+    }
   )
   
-  output$pick = renderPrint({
-   s = input$answerSample_row_selected
-   if (length(s)) {
-     cat('Correct Answer')
-     # if (quesAns[s,"Label"] == 1) {
-     #   cat('Correct Answer')
-     # }
-   }
-      # else if (quesAns[s,"Label"] == 0){
-      #   cat('Sorry that pick is not correct. \n\n')
-      #   cat('Pick another question.')
-      # } else {
-      #   cat('Pick another question')
-      # }
-  })
-  
-  
-  
-  output$table <- renderTable(filter(quesAns, DocumentTitle == "Apollo Creed"))
+   
+  # Make table of possible answers clickable to allow generation of result (correct or not)
+   proxy = dataTableProxy('answerSample')
+   
+   # Output result
+   output$info = renderPrint({
+     s = input$answerSample_rows_selected
+     # Check whether pick is correct
+     if (quesAns[s,"Label"] == 1) {
+       cat('Correct Answer')
+     } else if (quesAns[s,"Label"] == 0) {
+       cat('Sorry that pick is not correct. \n\n')
+       cat('Pick another question.')
+     } else {
+       cat('Error, pick another question')
+     }
+   })
     
     
-  #Filter table based on selections
+  # Filter table (Data Table tab) based on selections
    output$dataTable <- DT::renderDataTable(DT::datatable({
      data <- quesAns
      if (input$DT != "All") {
